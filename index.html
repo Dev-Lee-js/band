@@ -4,86 +4,157 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Band Archive Viewer</title>
-  <style>
-    :root{
-      --brand:#00c73c;
-      --brand-dark:#00a331;
-      --bg:#f3f5f7;
-      --text:#1b2430;
-      --muted:#6b7a90;
-      --line:#e6ebf1;
-      --panel:#ffffff;
-      --panel-2:#f8fafc;
-      --chip:#eef5ff;
-      --danger:#ff6b6b;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0; font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Pretendard, "Noto Sans KR", Apple SD Gothic Neo, sans-serif; color:var(--text); background:var(--bg)}
-    a{color:#1b7eff; text-decoration:none}
-    a:hover{text-decoration:underline}
+<style>
+  :root{
+    --brand:#00c73c;               /* 네이버 밴드 느낌의 그린 */
+    --brand-dark:#00a331;
+    --bg:#f3f5f7;                  /* 전체 배경(밝음) */
+    --text:#1b2430;
+    --muted:#6b7a90;
+    --line:#e6ebf1;
+    --panel:#ffffff;               /* 카드/패널 */
+    --panel-2:#f8fafc;             /* 사이드/상단 바 바탕 */
+    --chip:#eef5ff;
+    --danger:#ff6b6b;
+  }
 
-    .topbar{position:sticky; top:0; z-index:50; background:linear-gradient(180deg,var(--brand),var(--brand-dark)); color:#fff;}
-    .topbar .wrap{max-width:1180px; margin:0 auto; padding:10px 16px; display:flex; align-items:center; gap:12px}
-    .logo{font-weight:800; letter-spacing:.2px}
-    .search{flex:1 1 320px; display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.15); border-radius:10px; padding:0 10px; height:38px}
-    .search input{border:0; background:transparent; color:#fff; outline:0; width:100%}
-    .search input::placeholder{color:rgba(255,255,255,.85)}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Pretendard, "Noto Sans KR", Apple SD Gothic Neo, sans-serif;
+    color:var(--text);
+    background:var(--bg);
+    -webkit-text-size-adjust:100%; /* iOS 글자 확대 방지 */
+  }
+  a{color:#1b7eff; text-decoration:none}
+  a:hover{text-decoration:underline}
 
-    .layout{max-width:1180px; margin:14px auto; padding:0 16px; display:grid; grid-template-columns:260px 1fr 280px; gap:16px}
-    @media (max-width:1100px){ .layout{grid-template-columns:220px 1fr} .right{display:none} }
-    @media (max-width:760px){ .layout{grid-template-columns:1fr} .left{display:none} }
+  /* Top bar */
+  .topbar{
+    position:sticky; top:0; z-index:50;
+    background:linear-gradient(180deg,var(--brand),var(--brand-dark)); color:#fff;
+  }
+  .topbar .wrap{
+    max-width:1180px; margin:0 auto;
+    padding:10px 16px; display:flex; align-items:center; gap:12px
+  }
+  .logo{font-weight:800; letter-spacing:.2px}
+  .search{
+    flex:1 1 320px; display:flex; align-items:center; gap:8px;
+    background:rgba(255,255,255,.15); border-radius:10px; padding:0 10px; height:38px
+  }
+  .search input{border:0; background:transparent; color:#fff; outline:0; width:100%}
+  .search input::placeholder{color:rgba(255,255,255,.85)}
 
-    .panel{background:var(--panel); border:1px solid var(--line); border-radius:14px}
-    .left .band-box{padding:12px}
-    .band-cover{border-radius:10px; overflow:hidden; aspect-ratio:16/9; border:1px solid var(--line); background:#e9eef5; display:flex; align-items:center; justify-content:center}
-    .band-title{font-weight:700; margin-top:10px}
-    .band-meta{color:var(--muted); font-size:12px}
-    .btn{display:inline-flex; align-items:center; justify-content:center; height:36px; padding:0 14px; border-radius:10px; border:1px solid var(--line); background:var(--panel-2); cursor:pointer}
-    .btn:hover{filter:brightness(0.98)}
+  /* Layout */
+  .layout{
+    max-width:1180px; margin:14px auto; padding:0 16px;
+    display:grid; grid-template-columns:260px 1fr 280px; gap:16px
+  }
+  @media (max-width:1100px){
+    .layout{grid-template-columns:220px 1fr}
+    .right{display:none}
+  }
+  @media (max-width:760px){
+    .layout{grid-template-columns:1fr; gap:12px; padding:0 12px; margin:10px auto}
+    .left{display:none}
+  }
 
-    .feed .item{background:var(--panel); border:1px solid var(--line); border-radius:16px; overflow:hidden; margin-bottom:16px}
-    .feed .head{display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--line)}
-    .avatar{width:36px; height:36px; border-radius:50%; background:#dfe7f3; border:1px solid var(--line); flex:0 0 auto}
-    .who{font-weight:600}
-    .when{font-size:12px; color:var(--muted)}
-    .title{font-size:16px; font-weight:700; margin:8px 0 4px}
-    .snippet{font-size:14px; color:#2b3647; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
-    .body{padding:8px 14px 14px}
-    .hero { display:block; width: 643px; height: 610px; background:#eef3f9; object-fit: cover; }
-    .bar{display:none; align-items:center; justify-content:space-between; padding:10px 14px; border-top:1px solid var(--line); background:var(--panel-2);}
-    .capsule{display:flex; gap:8px; align-items:center}
-    .chip{background:var(--chip); border:1px solid var(--line); padding:4px 8px; border-radius:999px; font-size:12px}
-    .detail .post-shot{ padding: 0 16px; margin-top: 10px; }
-    .detail .post-shot img{
-      width:100%; height:auto; border-radius:10px;
-      border:1px solid var(--line); background:#eef3f9;
-    }
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:14px}
+  .left .band-box{padding:12px}
+  .band-cover{border-radius:10px; overflow:hidden; aspect-ratio:16/9; border:1px solid var(--line); background:#e9eef5; display:flex; align-items:center; justify-content:center}
+  .band-title{font-weight:700; margin-top:10px}
+  .band-meta{color:var(--muted); font-size:12px}
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    height:44px; /* 모바일 터치 타깃 크게 */
+    padding:0 14px; border-radius:10px; border:1px solid var(--line); background:var(--panel-2); cursor:pointer
+  }
+  .btn:hover{filter:brightness(0.98)}
 
-    .detail .head{display:flex; gap:12px; padding:16px; border-bottom:1px solid var(--line)}
-    .detail .hmeta{display:flex; flex-direction:column}
-    .detail .title{margin:0}
-    .detail .content{padding:16px; white-space:pre-wrap; line-height:1.55}
-    .media-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; padding:0 16px 16px}
-    @media (max-width:760px){ .media-grid{grid-template-columns:1fr} }
-    .media-grid img{width:100%; height:auto; border-radius:10px; border:1px solid var(--line); cursor:pointer}
-    .media-grid video{width:100%; height:auto; border-radius:10px; border:1px solid var(--line)}
-    .detail .foot{display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-top:1px solid var(--line); background:var(--panel-2)}
+  /* Feed list */
+  .feed .item{
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:16px; overflow:hidden; margin-bottom:16px
+  }
+  .feed .head{display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--line)}
+  .avatar{width:36px; height:36px; border-radius:50%; background:#dfe7f3; border:1px solid var(--line); flex:0 0 auto}
+  .who{font-weight:600}
+  .when{font-size:12px; color:var(--muted)}
+  .title{font-size:16px; font-weight:700; margin:8px 0 4px}
+  .snippet{font-size:14px; color:#2b3647; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+  .body{padding:8px 14px 14px}
 
-    .right .section{background:var(--panel); border:1px solid var(--line); border-radius:14px; margin-bottom:14px}
-    .right .section h4{margin:0; padding:12px 12px 6px; font-size:14px}
-    .thumbs{padding:8px 12px 12px; display:grid; grid-template-columns:repeat(4,1fr); gap:6px}
-    .thumbs img{width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px; border:1px solid var(--line); cursor:pointer}
+  /* ★ 모바일에서 이미지 깨짐/넘침 방지: 고정 크기 제거 + 반응형 */
+  .hero-link{display:block}
+  .hero{
+    display:block;
+    width:100%;
+    height:auto;
+    aspect-ratio:16/9;   /* 화면 폭에 맞는 높이 자동 계산 */
+    object-fit:cover;    /* 크롭 느낌 유지 */
+    background:#eef3f9;
+  }
 
-    .lightbox{position:fixed; inset:0; background:rgba(0,0,0,.85); display:none; align-items:center; justify-content:center; z-index:80}
-    .lightbox.open{display:flex}
-    .lightbox img{max-width:94vw; max-height:90vh; border-radius:12px; border:1px solid #3c3c3c}
+  .bar{display:none; align-items:center; justify-content:space-between; padding:10px 14px; border-top:1px solid var(--line); background:var(--panel-2);}
+  .capsule{display:flex; gap:8px; align-items:center}
+  .chip{background:var(--chip); border:1px solid var(--line); padding:4px 8px; border-radius:999px; font-size:12px}
+  .detail .post-shot{ padding: 0 16px; margin-top: 10px; }
+  .detail .post-shot img{
+    width:100%; height:auto; display:block;
+    border-radius:10px; border:1px solid var(--line); background:#eef3f9;
+  }
 
-    .row{display:flex; align-items:center; gap:6px}
-    .spacer{flex:1}
-    .muted{color:var(--muted)}
-    .hide{display:none !important}
-  </style>
+  /* Detail */
+  .detail .head{display:flex; gap:12px; padding:16px; border-bottom:1px solid var(--line)}
+  .detail .hmeta{display:flex; flex-direction:column}
+  .detail .title{margin:0}
+  .detail .content{padding:16px; white-space:pre-wrap; line-height:1.55}
+  .media-grid{
+    display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; padding:0 16px 16px
+  }
+  @media (max-width:760px){
+    .media-grid{grid-template-columns:1fr}
+    .detail .head{padding:12px}
+    .detail .content{padding:12px}
+  }
+  .media-grid img{width:100%; height:auto; border-radius:10px; border:1px solid var(--line); cursor:pointer; display:block}
+  .media-grid video{width:100%; height:auto; border-radius:10px; border:1px solid var(--line); display:block}
+
+  .detail .foot{display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-top:1px solid var(--line); background:var(--panel-2)}
+  @media (max-width:760px){
+    .detail .foot{padding:12px; font-size:12px; gap:8px}
+  }
+
+  /* Right: recent photos */
+  .right .section{background:var(--panel); border:1px solid var(--line); border-radius:14px; margin-bottom:14px}
+  .right .section h4{margin:0; padding:12px 12px 6px; font-size:14px}
+  .thumbs{padding:8px 12px 12px; display:grid; grid-template-columns:repeat(4,1fr); gap:6px}
+  .thumbs img{width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px; border:1px solid var(--line); cursor:pointer; display:block}
+
+  /* Lightbox */
+  .lightbox{position:fixed; inset:0; background:rgba(0,0,0,.85); display:none; align-items:center; justify-content:center; z-index:80}
+  .lightbox.open{display:flex}
+  .lightbox img{max-width:94vw; max-height:90vh; border-radius:12px; border:1px solid #3c3c3c}
+
+  /* Helpers */
+  .row{display:flex; align-items:center; gap:6px}
+  .spacer{flex:1}
+  .muted{color:var(--muted)}
+  .hide{display:none !important}
+
+  /* ===== iPhone 8 Plus 등 소형 화면 최적화 ===== */
+  @media (max-width:430px){
+    .topbar .wrap{padding:8px 12px; gap:8px}
+    .logo{font-size:16px}
+    .search{height:36px}
+    .feed .item{border-radius:12px; margin-bottom:12px}
+    .title{font-size:15px}
+    .snippet{font-size:13px}
+    .btn{height:44px; padding:0 12px}
+  }
+</style>
 </head>
 <body>
   <div class="topbar">
