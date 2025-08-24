@@ -5,6 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Band Archive Viewer</title>
 <style>
+  html.locked body > :not(#gate){ display:none !important; }
+    #gate{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.6); z-index:9999; padding:24px;
+  }
+  #gate .box{
+    width:100%; max-width:360px; background:#fff; border-radius:12px;
+    border:1px solid #e6ebf1; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,.2);
+    font-family:inherit; color:var(--text);
+  }
+  #gate input{ width:100%; height:44px; border:1px solid var(--line); border-radius:10px; padding:0 12px; margin-top:10px; }
+  #gate button{ margin-top:10px; width:100%; height:44px; border-radius:10px; border:1px solid var(--line); background:var(--brand); color:#fff; font-weight:700; cursor:pointer; }
   :root{
     --brand:#00c73c;               /* 네이버 밴드 느낌의 그린 */
     --brand-dark:#00a331;
@@ -145,80 +157,53 @@
   .hide{display:none !important}
 
   /* ===== iPhone 8 Plus 등 소형 화면 최적화 ===== */
+/* iPhone 8+ (414px 이하) 반응형 */
 @media (max-width:430px){
-  body{ font-size:14px; }
-
-  .topbar .wrap{
-    padding:6px 10px;
-    gap:6px;
-  }
-  .logo{ font-size:15px; }
-
-  .search{
-    height:32px;
-    padding:0 8px;
-  }
-  .search input{
-    font-size:14px;
-  }
-
-  .btn{
-    height:40px;
+  .layout{
+    display:flex;
+    flex-direction:column;   /* 세로 배치 */
+    gap:12px;
     padding:0 10px;
-    font-size:14px;
+    margin:8px auto;
   }
+  .left, .right{ display:none; }  /* 사이드바 숨김 */
+  main{ width:100%; }
 
-  /* 피드 카드 */
+  /* feed 아이템도 flex 적용 가능 */
   .feed .item{
+    display:flex;
+    flex-direction:column;
     border-radius:10px;
     margin-bottom:10px;
   }
-  .feed .head{ padding:10px; gap:8px; }
-  .avatar{ width:32px; height:32px; }
-  .title{ font-size:14px; }
-  .snippet{ font-size:12px; -webkit-line-clamp:3; }
-
-  /* 디테일 화면 */
-  .detail .head{ padding:10px; gap:8px; }
-  .detail .title{
-    font-size:15px;
-    padding:0 12px;
-  }
-  .detail .content{
-    padding:12px;
-    font-size:14px;
-    line-height:1.5;
-  }
-  .detail .foot{
+  .feed .head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
     padding:10px;
-    font-size:11px;
-    gap:6px;
+  }
+  .feed .body{
+    display:flex;
     flex-direction:column;
-    align-items:flex-start;
+    padding:10px;
   }
+  .title{ font-size:14px; }
+  .snippet{ font-size:12px; }
 
-  /* 미디어 그리드: 단일 열 */
-  .media-grid{
-    grid-template-columns:1fr;
-    gap:8px;
-    padding:0 12px 12px;
-  }
-
-  /* 우측 사이드 패널 숨김 */
-  .right{ display:none; }
-
-  /* 최근 사진 썸네일 */
-  .thumbs{
-    grid-template-columns:repeat(3,1fr);
-    gap:4px;
-  }
-  .thumbs img{
-    border-radius:6px;
-  }
 }
 </style>
 </head>
 <body>
+  <div id="gate" role="dialog" aria-modal="true">
+  <div class="box">
+    <div style="font-weight:800; font-size:18px">접근 비밀번호</div>
+    <p class="muted" style="margin:6px 0 10px">올바른 비밀번호를 입력하세요.</p>
+    <form onsubmit="event.preventDefault();__unlock();">
+      <input id="pw" type="password" placeholder="Password" autocomplete="current-password" autofocus />
+      <button type="submit">입장하기</button>
+    </form>
+  </div>
+</div>
   <div class="topbar">
     <div class="wrap">
       <div class="logo">BAND 아카이브</div>
@@ -287,6 +272,12 @@
 
   <script>
     // --- Scroll restore state ---
+    document.documentElement.classList.add('locked');
+     try{
+    if(sessionStorage.getItem('unlocked')==='1'){
+      document.documentElement.classList.remove('locked');
+    }
+    }catch{}
     const GDRIVE_API_KEY = 'AIzaSyAxtDbVl_qbhDxK_Bbh0VVaFv6mgtsnpQ0';
     let feedScrollY = 0;
     let restoreFeedScroll = false;
@@ -658,71 +649,78 @@ function makeVideoCard(raw){
 
     // ---------- DETAIL ----------
     const detailEl = $('#detail');
-    async function renderDetail(id){
-      const p = await loadPost(id);
-      detailEl.innerHTML = '';
+async function renderDetail(id){
+  const p = await loadPost(id);
+  detailEl.innerHTML = '';
 
-      const head = document.createElement('div'); head.className='head';
-      head.innerHTML = `
-        <div class="avatar"></div>
-        <div class="hmeta">
-          <div class="who">${(p.author||'작성자 미상')}</div>
-          <div class="when muted">${fmtTime(p.timeIso)}</div>
-        </div>
-        <div class="spacer"></div>
-        <a class="btn" href="#/">목록으로</a>
-        <a class="btn" target="_blank" rel="noopener" href="${p.permalink||'#'}">원문</a>
-      `;
+  const head = document.createElement('div'); head.className='head';
+  head.innerHTML = `
+    <div class="avatar"></div>
+    <div class="hmeta">
+      <div class="who">${(p.author||'작성자 미상')}</div>
+      <div class="when muted">${fmtTime(p.timeIso)}</div>
+    </div>
+    <div class="spacer"></div>
+    <a class="btn" href="#/">목록으로</a>
+    <a class="btn" target="_blank" rel="noopener" href="${p.permalink||'#'}">원문</a>
+  `;
 
-      const title = document.createElement('h2');
-      title.className='title';
-      title.style.padding='0 16px';
-      title.textContent = firstLine(p.content)||'제목 없음';
+  const title = document.createElement('h2');
+  title.className='title';
+  title.style.padding='0 16px';
+  title.textContent = firstLine(p.content)||'제목 없음';
 
-      const content = document.createElement('div');
-      content.className='content';
-      content.textContent = p.content||'';
+  const content = document.createElement('div');
+  content.className='content';
+  content.textContent = p.content||'';
 
-      const shotWrap = document.createElement('div');
-      shotWrap.className = 'post-shot';
-      if (p.__screenshotUrl){
-        const shot = new Image();
-        shot.alt = 'post screenshot';
-        setupLazyImage(shot, imageCandidates(p.__screenshotUrl));
-        shot.addEventListener('error', ()=> shotWrap.remove());
-        shotWrap.appendChild(shot);
-      }
+  const media = document.createElement('div'); 
+  media.className='media-grid';
 
-      const media = document.createElement('div'); media.className='media-grid';
+  /* 🔹 post.png (스크린샷) 먼저 넣기 */
+  if (p.__screenshotUrl){
+    const shot = new Image();
+    shot.alt = 'post screenshot';
+    setupLazyImage(shot, imageCandidates(p.__screenshotUrl));
+    shot.addEventListener('click',()=>openLightbox(shot.currentSrc || p.__screenshotUrl));
+    media.appendChild(shot);
+  }
 
-      // Images (lazy + fallbacks)
-      for(const src of p.__images||[]){
-        const img = new Image();
-        img.alt = 'img';
-        setupLazyImage(img, imageCandidates(src));
-        img.addEventListener('click',()=>openLightbox(img.currentSrc || src));
-        media.appendChild(img);
-      }
+  // 나머지 이미지
+  for(const src of p.__images||[]){
+    const img = new Image();
+    img.alt = 'img';
+    setupLazyImage(img, imageCandidates(src));
+    img.addEventListener('click',()=>openLightbox(img.currentSrc || src));
+    media.appendChild(img);
+  }
 
-      // Videos (click-to-load)
-      const vids = (p.__videos || []);
-      for (const raw of vids) media.appendChild(makeVideoCard(raw));
+  // 비디오
+  for (const raw of p.__videos||[]){
+    media.appendChild(makeVideoCard(raw));
+  }
 
-      if(p.__hasHlsNote){
-        const d=document.createElement('div'); d.className='muted'; d.style.gridColumn='1 / -1'; d.style.padding='0 16px 0';
-        d.textContent='일부 동영상은 m3u8(HLS)로 저장됨. ffmpeg 병합본이 있다면 교체 가능';
-        media.appendChild(d);
-      }
+  if(p.__hasHlsNote){
+    const d=document.createElement('div'); 
+    d.className='muted'; 
+    d.style.gridColumn='1 / -1'; 
+    d.style.padding='0 16px 0';
+    d.textContent='일부 동영상은 m3u8(HLS)로 저장됨. ffmpeg 병합본이 있다면 교체 가능';
+    media.appendChild(d);
+  }
 
-      const foot = document.createElement('div'); foot.className='foot muted';
-      foot.innerHTML = `<div>폴더: <code>${p.__id}/</code></div><div>이미지 ${p.__images.length} · 비디오 ${(p.__videos||[]).length}</div>`;
+  const foot = document.createElement('div'); 
+  foot.className='foot muted';
+  foot.innerHTML = `<div>폴더: <code>${p.__id}/</code></div>
+                    <div>이미지 ${p.__images.length} · 비디오 ${(p.__videos||[]).length}</div>`;
 
-      detailEl.append(head, title, shotWrap, content, media, foot);
+  /* 🔹 순서: head → title → content → media → foot */
+  detailEl.append(head, title, content, media, foot);
 
-      feedEl.classList.add('hide');
-      detailEl.classList.remove('hide');
-      window.scrollTo({top:0, behavior:'smooth'});
-    }
+  feedEl.classList.add('hide');
+  detailEl.classList.remove('hide');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
 
     // ---------- Router ----------
     async function router(){
@@ -749,6 +747,22 @@ function makeVideoCard(raw){
     window.addEventListener('hashchange', router);
 
     (async ()=>{ await init(); await router(); })();
-  </script>
+  const PASS_HASH = '297a190ef0cdaef3c4b585c6e92893f1ee1bc9bcde2734cc2ea4eb9d38df52e5';
+
+  async function __sha256Hex(s){
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  async function __unlock(){
+    const v = document.getElementById('pw').value || '';
+    if(await __sha256Hex(v) === PASS_HASH){
+      try{ sessionStorage.setItem('unlocked','1'); }catch{}
+      document.getElementById('gate')?.remove();
+      document.documentElement.classList.remove('locked');
+    }else{
+      alert('비밀번호가 틀렸습니다.');
+    }
+  }
+</script>
 </body>
 </html>
