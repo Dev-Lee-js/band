@@ -145,15 +145,77 @@
   .hide{display:none !important}
 
   /* ===== iPhone 8 Plus 등 소형 화면 최적화 ===== */
-  @media (max-width:430px){
-    .topbar .wrap{padding:8px 12px; gap:8px}
-    .logo{font-size:16px}
-    .search{height:36px}
-    .feed .item{border-radius:12px; margin-bottom:12px}
-    .title{font-size:15px}
-    .snippet{font-size:13px}
-    .btn{height:44px; padding:0 12px}
+@media (max-width:430px){
+  body{ font-size:14px; }
+
+  .topbar .wrap{
+    padding:6px 10px;
+    gap:6px;
   }
+  .logo{ font-size:15px; }
+
+  .search{
+    height:32px;
+    padding:0 8px;
+  }
+  .search input{
+    font-size:14px;
+  }
+
+  .btn{
+    height:40px;
+    padding:0 10px;
+    font-size:14px;
+  }
+
+  /* 피드 카드 */
+  .feed .item{
+    border-radius:10px;
+    margin-bottom:10px;
+  }
+  .feed .head{ padding:10px; gap:8px; }
+  .avatar{ width:32px; height:32px; }
+  .title{ font-size:14px; }
+  .snippet{ font-size:12px; -webkit-line-clamp:3; }
+
+  /* 디테일 화면 */
+  .detail .head{ padding:10px; gap:8px; }
+  .detail .title{
+    font-size:15px;
+    padding:0 12px;
+  }
+  .detail .content{
+    padding:12px;
+    font-size:14px;
+    line-height:1.5;
+  }
+  .detail .foot{
+    padding:10px;
+    font-size:11px;
+    gap:6px;
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  /* 미디어 그리드: 단일 열 */
+  .media-grid{
+    grid-template-columns:1fr;
+    gap:8px;
+    padding:0 12px 12px;
+  }
+
+  /* 우측 사이드 패널 숨김 */
+  .right{ display:none; }
+
+  /* 최근 사진 썸네일 */
+  .thumbs{
+    grid-template-columns:repeat(3,1fr);
+    gap:4px;
+  }
+  .thumbs img{
+    border-radius:6px;
+  }
+}
 </style>
 </head>
 <body>
