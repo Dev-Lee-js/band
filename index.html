@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Band Archive Viewer</title>
+  <style>
+    :root{
+      --brand:#00c73c;
+      --brand-dark:#00a331;
+      --bg:#f3f5f7;
+      --text:#1b2430;
+      --muted:#6b7a90;
+      --line:#e6ebf1;
+      --panel:#ffffff;
+      --panel-2:#f8fafc;
+      --chip:#eef5ff;
+      --danger:#ff6b6b;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0; font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Pretendard, "Noto Sans KR", Apple SD Gothic Neo, sans-serif; color:var(--text); background:var(--bg)}
+    a{color:#1b7eff; text-decoration:none}
+    a:hover{text-decoration:underline}
+
+    .topbar{position:sticky; top:0; z-index:50; background:linear-gradient(180deg,var(--brand),var(--brand-dark)); color:#fff;}
+    .topbar .wrap{max-width:1180px; margin:0 auto; padding:10px 16px; display:flex; align-items:center; gap:12px}
+    .logo{font-weight:800; letter-spacing:.2px}
+    .search{flex:1 1 320px; display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.15); border-radius:10px; padding:0 10px; height:38px}
+    .search input{border:0; background:transparent; color:#fff; outline:0; width:100%}
+    .search input::placeholder{color:rgba(255,255,255,.85)}
+
+    .layout{max-width:1180px; margin:14px auto; padding:0 16px; display:grid; grid-template-columns:260px 1fr 280px; gap:16px}
+    @media (max-width:1100px){ .layout{grid-template-columns:220px 1fr} .right{display:none} }
+    @media (max-width:760px){ .layout{grid-template-columns:1fr} .left{display:none} }
+
+    .panel{background:var(--panel); border:1px solid var(--line); border-radius:14px}
+    .left .band-box{padding:12px}
+    .band-cover{border-radius:10px; overflow:hidden; aspect-ratio:16/9; border:1px solid var(--line); background:#e9eef5; display:flex; align-items:center; justify-content:center}
+    .band-title{font-weight:700; margin-top:10px}
+    .band-meta{color:var(--muted); font-size:12px}
+    .btn{display:inline-flex; align-items:center; justify-content:center; height:36px; padding:0 14px; border-radius:10px; border:1px solid var(--line); background:var(--panel-2); cursor:pointer}
+    .btn:hover{filter:brightness(0.98)}
+
+    .feed .item{background:var(--panel); border:1px solid var(--line); border-radius:16px; overflow:hidden; margin-bottom:16px}
+    .feed .head{display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--line)}
+    .avatar{width:36px; height:36px; border-radius:50%; background:#dfe7f3; border:1px solid var(--line); flex:0 0 auto}
+    .who{font-weight:600}
+    .when{font-size:12px; color:var(--muted)}
+    .title{font-size:16px; font-weight:700; margin:8px 0 4px}
+    .snippet{font-size:14px; color:#2b3647; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+    .body{padding:8px 14px 14px}
+    .hero { display:block; width: 643px; height: 610px; background:#eef3f9; object-fit: cover; }
+    .bar{display:none; align-items:center; justify-content:space-between; padding:10px 14px; border-top:1px solid var(--line); background:var(--panel-2);}
+    .capsule{display:flex; gap:8px; align-items:center}
+    .chip{background:var(--chip); border:1px solid var(--line); padding:4px 8px; border-radius:999px; font-size:12px}
+    .detail .post-shot{ padding: 0 16px; margin-top: 10px; }
+    .detail .post-shot img{
+      width:100%; height:auto; border-radius:10px;
+      border:1px solid var(--line); background:#eef3f9;
+    }
+
+    .detail .head{display:flex; gap:12px; padding:16px; border-bottom:1px solid var(--line)}
+    .detail .hmeta{display:flex; flex-direction:column}
+    .detail .title{margin:0}
+    .detail .content{padding:16px; white-space:pre-wrap; line-height:1.55}
+    .media-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; padding:0 16px 16px}
+    @media (max-width:760px){ .media-grid{grid-template-columns:1fr} }
+    .media-grid img{width:100%; height:auto; border-radius:10px; border:1px solid var(--line); cursor:pointer}
+    .media-grid video{width:100%; height:auto; border-radius:10px; border:1px solid var(--line)}
+    .detail .foot{display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-top:1px solid var(--line); background:var(--panel-2)}
+
+    .right .section{background:var(--panel); border:1px solid var(--line); border-radius:14px; margin-bottom:14px}
+    .right .section h4{margin:0; padding:12px 12px 6px; font-size:14px}
+    .thumbs{padding:8px 12px 12px; display:grid; grid-template-columns:repeat(4,1fr); gap:6px}
+    .thumbs img{width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px; border:1px solid var(--line); cursor:pointer}
+
+    .lightbox{position:fixed; inset:0; background:rgba(0,0,0,.85); display:none; align-items:center; justify-content:center; z-index:80}
+    .lightbox.open{display:flex}
+    .lightbox img{max-width:94vw; max-height:90vh; border-radius:12px; border:1px solid #3c3c3c}
+
+    .row{display:flex; align-items:center; gap:6px}
+    .spacer{flex:1}
+    .muted{color:var(--muted)}
+    .hide{display:none !important}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="wrap">
+      <div class="logo">BAND 아카이브</div>
+      <div class="search"><input id="q" placeholder="게시글 검색(제목/내용/작성자)…" /></div>
+      <a id="linkHome" class="btn" href="#/">홈</a>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="left">
+      <div class="panel band-box">
+        <div class="band-cover" id="bandCover">표지</div>
+        <div class="band-title" id="bandTitle">홈그로티 리부트</div>
+        <div class="band-meta" id="bandMeta">멤버 n • 공개</div>
+        <div style="margin-top:10px; display:flex; gap:8px">
+          <a class="btn" id="btnWrite" href="#/">글쓰기</a>
+          <a class="btn" id="btnSettings" href="#/">밴드 설정</a>
+        </div>
+      </div>
+    </aside>
+
+    <main>
+      <section id="feed" class="feed"></section>
+      <section id="detail" class="detail panel hide"></section>
+    </main>
+
+    <aside class="right">
+      <div class="section">
+        <h4>최근 사진</h4>
+        <div id="recentPhotos" class="thumbs"></div>
+      </div>
+      <div class="section">
+        <h4>정보</h4>
+        <div style="padding:0 12px 14px" class="muted" id="stats">로딩 중…</div>
+      </div>
+    </aside>
+  </div>
+
+  <div id="lightbox" class="lightbox" role="dialog" aria-modal="true"><img alt="preview" /></div>
+
+  <template id="feed-item-tpl">
+    <article class="item">
+      <div class="head">
+        <div class="avatar"></div>
+        <div>
+          <div class="who"></div>
+          <div class="when"></div>
+        </div>
+        <div class="spacer"></div>
+        <a class="muted perma" target="_blank" rel="noopener">원문</a>
+      </div>
+      <div class="body">
+        <div class="title"></div>
+        <div class="snippet"></div>
+      </div>
+      <a class="hero-link" href="#/"><img class="hero" alt="대표 이미지" /></a>
+      <div class="bar">
+        <div class="capsule">
+          <span class="chip imgs"></span>
+          <span class="chip vids"></span>
+        </div>
+        <div class="muted pid"></div>
+      </div>
+    </article>
+  </template>
+
+  <script>
+    // --- Scroll restore state ---
+    const GDRIVE_API_KEY = 'AIzaSyAxtDbVl_qbhDxK_Bbh0VVaFv6mgtsnpQ0';
+    let feedScrollY = 0;
+    let restoreFeedScroll = false;
+    try { feedScrollY = Number(sessionStorage.getItem('feedScrollY') || 0) || 0; } catch {}
+
+    // ---------- Quick helpers ----------
+    const $ = (s, el=document)=>el.querySelector(s);
+    const $$ = (s, el=document)=>[...el.querySelectorAll(s)];
+    const lightbox = $('#lightbox');
+    lightbox.addEventListener('click', ()=> lightbox.classList.remove('open'));
+    function openLightbox(src){ $('img', lightbox).src = src; lightbox.classList.add('open'); }
+
+    const state = { ids: [], posts: new Map(), recentPhotos: [] };
+
+    function toDateFlexible(raw) {
+      if (!raw) return null;
+      if (typeof raw === 'number' || (/^\d+$/).test(String(raw))) {
+        const n = Number(raw);
+        return new Date(n > 1e12 ? n : n * 1000);
+      }
+      let d = new Date(raw);
+      if (!Number.isNaN(d.getTime())) return d;
+      const s = String(raw).trim();
+      const m = s.match(/(\d{4})[년.\-\/]\s*(\d{1,2})[월.\-\/]\s*(\d{1,2})[일.]?\s*(오전|오후)?\s*(\d{1,2})(?::(\d{1,2}))?/);
+      if (m) {
+        let [, y, mo, da, ap, h, mi] = m;
+        y = +y; mo = +mo; da = +da; h = +h; mi = +(mi || 0);
+        if (ap === '오후' && h < 12) h += 12;
+        if (ap === '오전' && h === 12) h = 0;
+        d = new Date(y, mo - 1, da, h, mi);
+        if (!Number.isNaN(d.getTime())) return d;
+      }
+      return null;
+    }
+    function fmtTime(raw) {
+      const d = toDateFlexible(raw);
+      if (!d) return String(raw || '');
+      const p = n => String(n).padStart(2,'0');
+      return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    }
+    function firstLine(t){ t=(t||'').trim(); const lf=t.indexOf('\n'); return (lf>=0?t.slice(0,lf):t).slice(0,80); }
+    function restText(t){ t=(t||'').trim(); const lf=t.indexOf('\n'); const rest = (lf>=0?t.slice(lf+1):''); return rest.trim(); }
+    function joinIfRelative(base, u){
+      if(!u) return '';
+      const s = String(u).trim();
+      if(/^https?:\/\//i.test(s) || /^\/\//.test(s) || /^data:/i.test(s)) return s;
+      return (base || '') + s.replace(/^\.?\//,'');
+    }
+
+    // ---- Google Drive helpers ----
+function extractDriveId(u){
+  if(!u) return '';
+  const s = String(u);
+  let m = s.match(/[?&]id=([a-zA-Z0-9_-]{10,})/); if (m) return m[1];
+  m = s.match(/\/file\/d\/([a-zA-Z0-9_-]{10,})/); if (m) return m[1];
+  if (/^[a-zA-Z0-9_-]{10,}$/.test(s)) return s;
+  return '';
+}
+    // 이미지용 후보 URL (view → lh3 → download)
+    function imageCandidates(u){
+      const id = extractDriveId(u);
+      if(!id) return [u];
+      return [
+        `https://drive.google.com/uc?export=view&id=${id}`,
+        `https://lh3.googleusercontent.com/d/${id}=s1600`,
+        `https://drive.usercontent.google.com/uc?export=download&id=${id}`
+      ];
+    }
+    // 비디오용 링크들
+function toDriveLinks(raw){
+  const id = extractDriveId(raw);
+  if(!id) return { id:'', alt:'', media:'', preview:'', view:'' };
+  const alt     = `https://drive.google.com/uc?export=download&id=${id}`; // 원본(새 탭 다운로드)
+  const media   = `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${GDRIVE_API_KEY}`; // 원본 스트리밍
+  const preview = `https://drive.google.com/file/d/${id}/preview`; // 저화질 미리보기
+  const view    = `https://drive.google.com/file/d/${id}/view`;
+  return { id, alt, media, preview, view };
+}
+async function getDrivePoster(raw){
+  const id = extractDriveId(raw);
+  if(!id) return '';
+
+  // ① thumbnailLink (가볍고 빠름)
+  try{
+    const metaUrl = `https://www.googleapis.com/drive/v3/files/${id}?fields=thumbnailLink,videoMediaMetadata%2Fwidth,videoMediaMetadata%2Fheight&key=${GDRIVE_API_KEY}`;
+    const r = await fetch(metaUrl);
+    if(r.ok){
+      const j = await r.json();
+      if (j.thumbnailLink){
+        // s220 같은 크기 파라미터를 s640/s1024 등으로 확대 가능
+        return j.thumbnailLink.replace(/=s\d+(\-c)?(\-k)?$/, '=s640');
+      }
+    }
+  }catch(e){ /* ignore */ }
+
+  // ② 대체: 원본 영상에서 1초 지점 캡처 (CORS 허용 필요)
+  return await capturePosterFromVideo(
+    `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${GDRIVE_API_KEY}`,
+    1.0
+  );
+}
+function capturePosterFromVideo(src, t=1.0){
+  return new Promise((resolve)=>{
+    const v = document.createElement('video');
+    v.crossOrigin = 'anonymous';
+    v.preload = 'metadata';
+    v.muted = true;       // 일부 브라우저에서 탐색 허용
+    v.src = src;
+
+    const done = (url)=>{ try{ v.src=''; v.load(); }catch{} resolve(url||''); };
+
+    function draw(){
+      try{
+        const w = v.videoWidth || 640, h = v.videoHeight || 360;
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(v, 0, 0, w, h);
+        done(c.toDataURL('image/jpeg', 0.82));
+      }catch{ done(''); }
+    }
+
+    v.addEventListener('loadeddata', ()=>{
+      const target = isFinite(v.duration) ? Math.min(Math.max(0.1, t), v.duration - 0.1) : t;
+      try{
+        v.currentTime = target;
+      }catch{
+        draw(); // 탐색 불가 시 즉시 그리기
+      }
+    }, {once:true});
+
+    v.addEventListener('seeked', draw, {once:true});
+    v.addEventListener('error', ()=> done(''), {once:true});
+  });
+}
+
+    // ---- Lazy image loader with fallbacks ----
+    const imgObserver = new IntersectionObserver((entries)=>{
+      for(const entry of entries){
+        if(entry.isIntersecting){
+          const img = entry.target;
+          imgObserver.unobserve(img);
+          loadNextSrc(img);
+        }
+      }
+    }, {root:null, rootMargin:'600px', threshold:0.01});
+
+    function setupLazyImage(img, candidates){
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.referrerPolicy = 'no-referrer';
+      img.setAttribute('fetchpriority','low');
+      img.dataset.urls = JSON.stringify(candidates||[]);
+      img.dataset.idx = '0';
+      img.addEventListener('error', ()=>{
+        const arr = JSON.parse(img.dataset.urls||'[]');
+        let i = Number(img.dataset.idx||0) + 1;
+        if(i < arr.length){
+          img.dataset.idx = String(i);
+          img.src = arr[i];
+        }else{
+          // 완전 실패하면 숨김
+          img.classList.add('hide');
+        }
+      });
+      imgObserver.observe(img);
+    }
+    function loadNextSrc(img){
+      const arr = JSON.parse(img.dataset.urls||'[]');
+      const i = Number(img.dataset.idx||0);
+      if(arr[i]) img.src = arr[i];
+    }
+
+    async function loadIndex(){
+      const res = await fetch('index.json'); if(!res.ok) throw new Error('index.json 로드 실패');
+      const j = await res.json();
+      state.ids = (j.items||[]).map(x=>Number(x)).filter(n=>Number.isFinite(n));
+      $('#stats').textContent = `${state.ids.length}개 게시물 · 스크랩 시각: ${j.scrapedAt||''}`;
+    }
+
+    async function loadPost(id){
+      if(state.posts.has(id)) return state.posts.get(id);
+      const base = `${id}/`;
+      const r = await fetch(base + 'post.json');
+      if(!r.ok) throw new Error('post.json 로드 실패: '+id);
+      const p = await r.json();
+
+      p.__id = id; p.__base = base;
+      p.__screenshotUrl = p.screenshot ? joinIfRelative(base, p.screenshot) : '';
+      p.__images = Array.isArray(p.images) ? p.images.map(x=>joinIfRelative(base, x)) : [];
+      p.__videos = Array.isArray(p.videos) ? p.videos.map(x=>joinIfRelative(base, x)) : [];
+      p.__hasHlsNote = p.__videos.some(v=>/\.m3u8(\.txt)?$/i.test(v));
+
+      state.posts.set(id, p);
+
+      if(p.__images && p.__images.length){
+        const tt = toDateFlexible(p.timeIso);
+        state.recentPhotos.push({id, src: p.__images[0], t: tt ? tt.getTime() : 0});
+      }
+      return p;
+    }
+
+    function chooseHero(p){
+      return (p.__images && p.__images.length) ? p.__images[0] : '';
+    }
+
+    // ---------- Google Drive 비디오 지연 로더 ----------
+function makeVideoCard(raw){
+  const {alt, media, preview, view} = toDriveLinks(raw);
+  const box = document.createElement('div');
+  box.className = 'video-ph';
+  box.style.display = 'block';
+
+  box.innerHTML = `
+    <div style="position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#eef3f9;">
+      <div class="ph" style="position:relative;min-height:220px;">
+        <img class="poster" alt="video thumbnail" style="width:100%;height:auto;display:none;">
+        <button class="play"
+          style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+                 display:inline-flex;align-items:center;gap:8px;padding:10px 14px;
+                 border-radius:999px;border:0;background:rgba(0,0,0,.75);color:#fff;
+                 font-weight:700;cursor:pointer;">
+          ▶ 동영상 재생
+        </button>
+      </div>
+      <div class="muted"
+           style="display:flex;gap:10px;align-items:center;justify-content:center;
+                  padding:10px 12px;border-top:1px solid var(--line);background:var(--panel-2);">
+        <a class="open-original" target="_blank" rel="noopener">다운로드</a>
+        <span>·</span>        
+      </div>
+    </div>
+  `;
+
+  // 하단 링크 연결
+  box.querySelector('.open-original').href = alt || raw;  
+
+  // 🔹 썸네일 비동기 로드
+  (async ()=>{
+    const poster = await getDrivePoster(raw);
+    if(poster){
+      const img = box.querySelector('.poster');
+      img.src = poster;
+      img.style.display = 'block';
+    }
+  })();
+
+  // ▶ 클릭 → 원본 화질 인라인 스트리밍
+  const btn = box.querySelector('.play');
+  btn.addEventListener('click', ()=>{
+    btn.disabled = true;
+    const v = document.createElement('video');
+    v.controls = true;
+    v.playsInline = true;
+    v.preload = 'metadata';
+    v.crossOrigin = 'anonymous';
+    v.style.width = '100%';
+    v.style.height = 'auto';
+    v.src = media; // Drive API alt=media (원본)
+
+    // 실패 시: 저화질 미리보기 임베드
+    v.addEventListener('error', ()=>{
+      if (preview){
+        const wrap = document.createElement('div');
+        wrap.style.position = 'relative';
+        wrap.style.paddingTop = '56.25%';
+        const f = document.createElement('iframe');
+        f.src = preview;
+        f.allow = 'autoplay; fullscreen; picture-in-picture';
+        f.style.position = 'absolute';
+        f.style.inset = '0';
+        f.style.width = '100%';
+        f.style.height = '100%';
+        f.style.border = '0';
+        wrap.appendChild(f);
+        box.firstElementChild.replaceChild(wrap, box.querySelector('.ph'));
+      } else {
+        const msg = document.createElement('div');
+        msg.style.padding = '14px';
+        msg.textContent = '동영상을 불러올 수 없습니다. 아래 "원본(새 탭)"으로 시청해 주세요.';
+        box.firstElementChild.replaceChild(msg, box.querySelector('.ph'));
+      }
+    }, {once:true});
+
+    // 자리 교체 + 재생
+    box.firstElementChild.replaceChild(v, box.querySelector('.ph'));
+    v.play().catch(()=>{ /* 자동재생 실패 무시 */ });
+  });
+
+  return box;
+}
+    // ---------- FEED ----------
+    const feedEl = $('#feed');
+    const tpl = $('#feed-item-tpl');
+
+    async function renderFeed(){
+      feedEl.innerHTML = '';
+      const term = ($('#q').value||'').trim().toLowerCase();
+
+      await Promise.allSettled(state.ids.map(id => loadPost(id)));
+
+      let posts = state.ids.map(id => state.posts.get(id)).filter(Boolean);
+      if(term){
+        posts = posts.filter(p =>
+          String(p.postId||'').includes(term) ||
+          (p.author||'').toLowerCase().includes(term) ||
+          (p.content||'').toLowerCase().includes(term)
+        );
+      }
+      posts.sort((a,b)=> {
+        const ta = toDateFlexible(a.timeIso), tb = toDateFlexible(b.timeIso);
+        return (tb?tb.getTime():0) - (ta?ta.getTime():0);
+      });
+
+      for(const p of posts){
+        const node = tpl.content.firstElementChild.cloneNode(true);
+        const hero = chooseHero(p);
+        if(hero){
+          const heroImg = $('.hero', node);
+          setupLazyImage(heroImg, imageCandidates(hero));
+          $('.hero-link', node).href = `#/post/${p.__id}`;
+        } else {
+          $('.hero-link', node).classList.add('hide');
+        }
+
+        $('.who', node).textContent = p.author || '작성자 미상';
+        $('.when', node).textContent = fmtTime(p.timeIso);
+        $('.perma', node).href = p.permalink || '#';
+
+        const title = firstLine(p.content)||'제목 없음';
+        $('.title', node).textContent = title;
+
+        $('.imgs', node).textContent = `${p.__images.length} 이미지`;
+        $('.vids', node).textContent = `${(p.__videos||[]).length} 비디오` + (p.__hasHlsNote? ' +HLS':'' );
+        $('.pid', node).textContent = `ID ${p.__id}`;
+
+        node.addEventListener('click', (e)=>{
+          if(e.target.closest('.perma')) return;
+          feedScrollY = window.scrollY;
+          try { sessionStorage.setItem('feedScrollY', String(feedScrollY)); } catch {}
+          location.hash = `#/post/${p.__id}`;
+          e.preventDefault();
+        });
+        feedEl.appendChild(node);
+      }
+
+      renderRecentPhotos();
+
+      $('#detail').classList.add('hide');
+      feedEl.classList.remove('hide');
+
+      if (restoreFeedScroll) {
+        window.scrollTo(0, feedScrollY);
+        restoreFeedScroll = false;
+      }
+    }
+
+    function renderRecentPhotos(){
+      const box = $('#recentPhotos');
+      const top = [...state.recentPhotos].sort((a,b)=>b.t-a.t).slice(0, 12);
+      box.innerHTML = '';
+      for(const it of top){
+        const img = new Image();
+        img.alt = 'thumb';
+        setupLazyImage(img, imageCandidates(it.src));
+        img.addEventListener('click', ()=>{ location.hash = `#/post/${it.id}`; });
+        box.appendChild(img);
+      }
+    }
+
+    // ---------- DETAIL ----------
+    const detailEl = $('#detail');
+    async function renderDetail(id){
+      const p = await loadPost(id);
+      detailEl.innerHTML = '';
+
+      const head = document.createElement('div'); head.className='head';
+      head.innerHTML = `
+        <div class="avatar"></div>
+        <div class="hmeta">
+          <div class="who">${(p.author||'작성자 미상')}</div>
+          <div class="when muted">${fmtTime(p.timeIso)}</div>
+        </div>
+        <div class="spacer"></div>
+        <a class="btn" href="#/">목록으로</a>
+        <a class="btn" target="_blank" rel="noopener" href="${p.permalink||'#'}">원문</a>
+      `;
+
+      const title = document.createElement('h2');
+      title.className='title';
+      title.style.padding='0 16px';
+      title.textContent = firstLine(p.content)||'제목 없음';
+
+      const content = document.createElement('div');
+      content.className='content';
+      content.textContent = p.content||'';
+
+      const shotWrap = document.createElement('div');
+      shotWrap.className = 'post-shot';
+      if (p.__screenshotUrl){
+        const shot = new Image();
+        shot.alt = 'post screenshot';
+        setupLazyImage(shot, imageCandidates(p.__screenshotUrl));
+        shot.addEventListener('error', ()=> shotWrap.remove());
+        shotWrap.appendChild(shot);
+      }
+
+      const media = document.createElement('div'); media.className='media-grid';
+
+      // Images (lazy + fallbacks)
+      for(const src of p.__images||[]){
+        const img = new Image();
+        img.alt = 'img';
+        setupLazyImage(img, imageCandidates(src));
+        img.addEventListener('click',()=>openLightbox(img.currentSrc || src));
+        media.appendChild(img);
+      }
+
+      // Videos (click-to-load)
+      const vids = (p.__videos || []);
+      for (const raw of vids) media.appendChild(makeVideoCard(raw));
+
+      if(p.__hasHlsNote){
+        const d=document.createElement('div'); d.className='muted'; d.style.gridColumn='1 / -1'; d.style.padding='0 16px 0';
+        d.textContent='일부 동영상은 m3u8(HLS)로 저장됨. ffmpeg 병합본이 있다면 교체 가능';
+        media.appendChild(d);
+      }
+
+      const foot = document.createElement('div'); foot.className='foot muted';
+      foot.innerHTML = `<div>폴더: <code>${p.__id}/</code></div><div>이미지 ${p.__images.length} · 비디오 ${(p.__videos||[]).length}</div>`;
+
+      detailEl.append(head, title, shotWrap, content, media, foot);
+
+      feedEl.classList.add('hide');
+      detailEl.classList.remove('hide');
+      window.scrollTo({top:0, behavior:'smooth'});
+    }
+
+    // ---------- Router ----------
+    async function router(){
+      const hash = location.hash || '#/';
+      const m = hash.match(/^#\/(post\/)?(\d+)?/);
+      if(!m || !state.ids.length){ await init(); }
+
+      if(/^#\/post\//.test(hash)){
+        const id = Number((hash.match(/(\d+)/)||[])[1]);
+        if(!id){ location.hash = '#/'; return; }
+        await renderDetail(id);
+      } else {
+        try { feedScrollY = Number(sessionStorage.getItem('feedScrollY') || 0) || 0; } catch {}
+        restoreFeedScroll = true;
+        await renderFeed();
+      }
+    }
+
+    async function init(){
+      if(!state.ids.length){ await loadIndex(); }
+    }
+
+    $('#q').addEventListener('input', ()=>{ if(location.hash.startsWith('#/post/')) return; renderFeed(); });
+    window.addEventListener('hashchange', router);
+
+    (async ()=>{ await init(); await router(); })();
+  </script>
+</body>
+</html>
